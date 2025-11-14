@@ -31,7 +31,7 @@ class AudioSourceEndpoint {
   // List of containers and their supported qualities
   get supportedPresets -> List {
     return [
-      { type: "lossy", name: "mp3", qualities: [ { bitrate: 320000 }, { bitrate: 160000 }, { bitrate: 96000 }, { bitrate: 48000 }, { bitrate: 12000 } ] }.toJson(),      
+      { type: "lossy", name: "mp4", qualities: [ { bitrate: 320000 }, { bitrate: 160000 }, { bitrate: 96000 }, { bitrate: 48000 }, { bitrate: 12000 } ] }.toJson(),      
     ]
   }
   
@@ -86,7 +86,7 @@ class AudioSourceEndpoint {
       final url = utf8.decode(decryptedLink).replaceAll('_96', quality.id)
       return {
           "url": url,
-          "container": "mp3",
+          "container": "mp4",
           "type": "lossless",
           "codec": "aac",
           "bitrate": quality.bitrate,
