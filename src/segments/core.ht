@@ -1,0 +1,100 @@
+import "module:std" as std
+
+var HttpClient = std.HttpClient
+var HttpResponse = std.HttpResponse
+var RequestOptions = std.RequestOptions
+
+class CorePlugin {
+  var client: HttpClient
+
+  construct (this.client)
+
+  /// Checks for updates to the plugin.
+  /// [currentConfig] is just plugin.json's file content.
+  ///
+  /// If there's an update available, it will return a map of:
+  /// - [downloadUrl] -> direct download url to the new plugin.smplug file.
+  /// - [version] of the new plugin.
+  /// - [changelog] Optionally, a changelog for the update (markdown supported).
+  ///
+  /// If no update is available, it will return null.
+  fun checkUpdate(currentConfig: Map) -> Future {
+    var versionParts = currentConfig["version"].split(".")
+    var major = int.parse(versionParts[0])
+    var minor = int.parse(versionParts[1])
+    var patch = int.parse(versionParts[2])
+
+    return client.get_req(
+      "https://api.github.com/repos/KRTirtho/spotube-plugin-jiosaavn-audio/releases/latest",
+      options: RequestOptions(
+        headers: {
+          "Accept": "application/vnd.github.v3+json"
+        }.toJson()
+      ),
+    ).then((res) {
+      var data = res.data
+      var latestVersion = data["tag_name"].split(".")
+
+      if (latestVersion.length < 3) {
+        throw "Invalid version format from GitHub API. Expected format: <major>.<minor>.<patch>. Got: ${data["tag_name"]}"
+      }
+
+      var latestMajor = int.parse(latestVersion[0])
+      var latestMinor = int.parse(latestVersion[1])
+      var latestPatch = int.parse(latestVersion[2])
+
+      var isUpdateAvailable = latestMajor > major ||
+        (latestMajor == major && latestMinor > minor) ||
+        (latestMajor == major && latestMinor == minor && latestPatch > patch)
+
+      if (!isUpdateAvailable) return null
+
+      var downloadUrl = data["assets"].firstWhere(
+        (asset) => asset["name"] == "plugin.smplug",
+        orElse: () => null
+      )?["browser_download_url"]
+
+      if (downloadUrl == null) {
+        throw "No download URL found for the plugin update"
+      }
+
+      var changelog = data["body"] ?? "No changelog available"
+      return {
+        "downloadUrl": downloadUrl,
+        "version": data["tag_name"],
+        "changelog": changelog
+      }.toJson()
+    })
+  }
+
+  /// Returns the support information for the plugin in Markdown or plain text.
+  /// Supports images and links.
+  get support -> string {
+    // TODO: Return support information
+    return "
+# Support
+
+Idk
+"
+  }
+
+  /// Scrobble the provided details to the scrobbling service supported by the plugin.
+  /// "scrobbling" must be set as an ability in the plugin.json
+  /// [details] is a map containing the scrobble information, such as:
+  /// - [id] -> The unique identifier of the track.
+  /// - [title] -> The title of the track.
+  /// - [artists] -> List of artists
+  ///   - [id] -> The unique identifier of the artist.
+  ///   - [name] -> The name of the artist.
+  /// - [album] -> The album of the track
+  ///   - [id] -> The unique identifier of the album.
+  ///   - [name] -> The name of the album.
+  /// - [timestamp] -> The timestamp of the scrobble (optional).
+  /// - [duration_ms] -> The duration of the track in milliseconds (optional).
+  /// - [isrc] -> The ISRC code of the track (optional).
+  fun scrobble(details: Map) {
+    // TODO: Implement scrobbling
+  }
+}
+
+export { CorePlugin }

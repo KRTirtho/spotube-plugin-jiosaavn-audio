@@ -1,0 +1,100 @@
+import "module:std" as std
+import { DES, DESMode, DESPaddingType, codeUnits } from "../../deps/hetu_des/lib/assets/hetu/des.ht"
+
+var Base64 = std.Base64
+var Utf8Codec = std.Utf8Codec
+var utf8 = std.utf8
+var HttpClient = std.HttpClient
+var HttpResponse = std.HttpResponse
+var JSON = std.JSON
+
+class Converter {
+  static fun toSpotubeMatchObject(res: List) -> List<Map> {
+    return res.map((d){
+      return {
+        "id": d["id"],
+        "title": d["song"],
+        "artists": [d["primary_artists"], d["featured_artists"]],
+        "duration": int.parse(d["duration"]) * 1000,
+        "thumbnail": d["image"],
+        "externalUri": d["encrypted_media_url"],
+      }.toJson()
+    }).toList()
+  }
+}
+
+
+class AudioSourceEndpoint {
+  var client: HttpClient
+  construct (this.client)
+
+  // List of containers and their supported qualities
+  get supportedPresets -> List {
+    return [
+      { type: "lossy", name: "mp3", qualities: [ { bitrate: 320000 }, { bitrate: 160000 }, { bitrate: 96000 }, { bitrate: 48000 }, { bitrate: 12000 } ] }.toJson(),      
+    ]
+  }
+  
+  /// Find matching audio sources for a given track. It can return one or multiple matches.
+  /// The first match is considered the best match.
+  /// @param track - Map<SpotubeTrackObject>
+  /// @returns Future<List<SpotubeAudioSourceMatchObject>>
+  fun matches(track: Map) -> List {
+    final artists = track["artists"].map((a)=> a["name"]).join(", ")
+    final query = "${track["name"]} ${artists}"
+    return client.get_req(
+      "/",
+      queryParameters: {
+        '__call': "search.getResults",
+        q: query,
+        p: '0',
+        limit: '5'
+      }.toJson()
+    ).then((res){
+      var data = JSON.decode(res.data)
+
+      return Converter.toSpotubeMatchObject(data["results"])
+    })
+  }
+
+
+  static const qualities = [
+    {id: '_12', bitrate: 12000 },
+    {id: '_48', bitrate: 48000 },
+    {id: '_96', bitrate: 96000 },
+    {id: '_160', bitrate: 160000 },
+    {id: '_320', bitrate: 320000 },
+  ]
+
+  static const key = '38346591'
+
+  /// For the given match, return all available streams.
+  /// Each stream represents a unique combination of container and quality.
+  /// @param match - Map<SpotubeAudioSourceStreamObject>
+  /// @returns Future<List<SpotubeAudioSourceStreamObject>>
+  fun streams(match: Map) -> List {
+    final encryptedMediaUrl = match["externalUri"];
+    final encrypted = Base64.decode(encryptedMediaUrl);
+    final decipher = DES(
+      key: codeUnits(key),
+      mode: DESMode.ECB,
+      paddingType: DESPaddingType.PKCS7,
+    )
+    final decryptedLink = decipher.decrypt(encrypted)
+
+    final links = qualities.map((quality) {
+      final url = utf8.decode(decryptedLink).replaceAll('_96', quality.id)
+      return {
+          "url": url,
+          "container": "mp3",
+          "type": "lossless",
+          "codec": "aac",
+          "bitrate": quality.bitrate,
+        }.toJson();
+    }).toList();
+
+    return Future.value(links)
+  }
+}
+
+export { AudioSourceEndpoint }

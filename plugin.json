@@ -1,0 +1,11 @@
+{
+  "version": "1.0.0",
+  "name": "Jiosaavn Audio",
+  "author": "Kingkor Roy Tirtho",
+  "description": "Jiosaavn audio source plugin for Spotube",
+  "entryPoint": "JiosaavnAudioSourcePlugin",
+  "apis": ["localstorage"],
+  "abilities": ["audio-source"],
+  "repository": "https://github.com/KRTirtho/spotube-plugin-jiosaavn-audio",
+  "pluginApiVersion": "2.0.0"
+}

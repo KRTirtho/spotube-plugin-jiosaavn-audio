@@ -1,0 +1,3 @@
+[submodule "deps/hetu_des.git"]
+	path = deps/hetu_des
+	url = https://github.com/hetu-community/hetu_des.git

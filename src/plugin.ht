@@ -1,0 +1,32 @@
+import "module:std" as std
+
+import { AudioSourceEndpoint } from './segments/audio_source.ht'
+import { CorePlugin } from './segments/core.ht'
+
+var HttpClient = std.HttpClient
+var HttpBaseOptions = std.HttpBaseOptions
+
+class JiosaavnAudioSourcePlugin {
+  var audioSource: AudioSourceEndpoint
+  var core: CorePlugin
+
+  var api: HttpClient
+  
+  construct (){
+    api = HttpClient(
+      HttpBaseOptions(
+        baseUrl: 'https://www.jiosaavn.com/api.php',
+        queryParameters: {
+          '_format': 'json',
+          '_marker': '0',
+          'ctx': 'wap6dot0',
+        }.toJson(),
+      )
+    )
+    
+    audioSource = AudioSourceEndpoint(api)
+    core = CorePlugin(api)
+  }
+}
+
+export { TemplateMetadataProviderPlugin }
