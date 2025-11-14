@@ -48,7 +48,7 @@ class AudioSourceEndpoint {
         '__call': "search.getResults",
         q: query,
         p: '0',
-        limit: '5'
+        n: '5'
       }.toJson()
     ).then((res){
       var data = JSON.decode(res.data)
